@@ -1,48 +1,39 @@
-const { spawn } = require('child_process');
+const { spawn} = require('child_process');
 
 let slsOfflineProcess;
 
-beforeAll(async () => {
-	console.log('[Tests Bootstrap] Start');
+module.exports = async () => {
+    console.log('[Tests Bootstrap] Start');
+    await startSlsOffline((err) => {
+        if (err) {
+            console.log(err);
+        }
 
-	await startSlsOffline((err) => {
-		if (err) {
-			console.log(err);
-		}
-
-		console.log('[Tests Bootstrap] Done');
-	});
-}, 30000);
-
-afterAll(async () => {
-	console.log('[Tests Teardown] Start');
-
-	await stopSlsOffline();
-
-	console.log('[Tests Teardown] Done');
-});
-
-// Helper functions
+        console.log('[Tests Bootstrap] Done');
+    });
+}
 
 const startSlsOffline = (done) => {
-	slsOfflineProcess = spawn('sls', [ 'offline', 'start', '--port', 3005 ]);
+    if (slsOfflineProcess) {
+        slsOfflineProcess.kill('SIGINT');
+        console.log('Serverless Offline stopped');
+				done();
+				return;
+    }
 
-	console.log(`Serverless: Offline started with PID : ${slsOfflineProcess.pid} and PORT: 3005`);
+    slsOfflineProcess = spawn('sls', [ 'offline', 'start', '--port', 3005 ]);
 
-	slsOfflineProcess.stdout.on('data', (data) => {
-		if (data.includes('Offline listening on')) {
-			console.log(data.toString().trim());
-			done();
-		}
-	});
+    console.log(`Serverless: Offline started with PID : ${slsOfflineProcess.pid} and PORT: 3005`);
 
-	slsOfflineProcess.stderr.on('data', (errData) => {
-		console.log(`Error starting Serverless Offline:\n${errData}`);
-		done(errData);
-	});
-};
+    slsOfflineProcess.stdout.on('data', (data) => {
+        if (data.includes('Offline listening on')) {
+            // console.log(data.toString().trim());
+            done();
+        }
+    });
 
-const stopSlsOffline = () => {
-	slsOfflineProcess.kill('SIGINT');
-	console.log('Serverless Offline stopped');
+    slsOfflineProcess.stderr.on('data', (errData) => {
+        console.log(`Error starting Serverless Offline:\n${errData}`);
+        done(errData);
+    });
 };
